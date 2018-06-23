@@ -1,21 +1,24 @@
-var word;
-var angle;
-var bar = [], words = [], cats;
-
+var bar = [], words = [], cats = [], icats = [];
 var score, level, life;
-var endGame, yspeed;
-var workWidth;
-var workheight;
+var yspeed;
+var workWidth = 400;
+var workheight = 500;
 var screen;
 var explosion_img;
-
 var exPosX = 0;
 var exPosY = 0;
 var exFrame = 12;
+var angle = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
+var word  = {text:"", active:false, cat:"", x:0, y:0, x1:0, y1:0, x2:0, y2:0, tipo:0};
+
 
 function preload()
 {
 	explosion_img = loadImage('assets/explosion.png');
+	initial_img = loadImage('assets/initial.png');
+	gameover_img = loadImage('assets/gameover.png');
+	end_img = loadImage('assets/end.png');
+	book_img = loadImage('assets/end.png');
 }
 
 function setup()
@@ -23,19 +26,8 @@ function setup()
 	createCanvas(550, 500);
 	textFont('Helvetica');
 	frameRate(30);
-    workWidth = 400;
-    workheight = 500;
-	score = 0;
-	level = 1;
 	screen = 1;
-	life = 5;
-	angle = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
-	word  = {text:"", active:false, cat:"", x:0, y:0, x1:0, y1:0, x2:0, y2:0, tipo:0};
-	setNewWord(word);
-	endGame = false;
-	setupLevel();
 }
-
 
 function draw()
 {
@@ -53,34 +45,58 @@ function draw()
 			endScreen();
 			break;
 	}
+	return false;
 }
 
 function beginScreen()
 {
 	push();
-	background(50);
-    fill(255);
-	textSize(35)
-	text("Jogo Palavras e Categorias",50,200);
+	background(180,197,223);
 	textSize(20)
-	text("Tecle espaço para iniciar o jogo...",130,400);
+    fill(0, 0, 128);	
+	text("Tecle espaço para iniciar o jogo...",130,420);
+    image(initial_img,40,40);
+	pop();
+}
+
+function endScreen()
+{
+	background(180,197,223);
+    fill(0, 0, 0);		
+	image(end_img,0,0);
+	textSize(30);
+    var s = "Total de pontos: "+score;
+	text(s,(500-textWidth(s))/2,350)
+	textSize(20)
+	text("Tecle espaço para jogar novamente...",100,440);
+    image(end_img,0,0);
+}
+
+
+function gameOverScreen()
+{
+	push();
+	background(180,197,223);
+	textSize(20)
+    fill(0, 0, 128);	
+	text("Tecle espaço para jogar novamente...",100,420);
+    image(gameover_img,40,40);
 	pop();
 }
 
 
 function gameScreen()
 {	
-	if (!word.active) {
-		if (!setNewWord(word)) {
-			level++;
-			if (level <= 5) {
-				setupLevel();
-			}
-			else {
-				screen = 4;
-			}
-			return false;
+
+	if (!word.active && !setNewWord(word)) {
+		level++;
+		if (level <= 5) {
+			setupLevel();
 		}
+		else {
+			screen = 4;
+		}
+		return false;
 	}
 
 	if (keyIsDown(LEFT_ARROW) && word.x1>4) {
@@ -145,7 +161,6 @@ function gameScreen()
 	boxText('Vidas',250,20,false);
 	boxText(life,290,20,true);
 
-
 	for (i=0; i<bar.length; i++) {
 		rect(bar[i].x1,bar[i].y1,bar[i].x2-bar[i].x1,bar[i].y2-bar[i].y1);
 	}
@@ -167,63 +182,21 @@ function gameScreen()
 		image(explosion_img,exPosX,exPosY,96,96,96*exFrame,0,96,96);
 		exFrame++;
 	}	
-	
-	
-	/*
-	exCounter;
-
-	for (i==0; i<exQtd; i++) {
-		if (exFrame[i]<12) {
-			image(explosion_img,exPosX[i],exPosY[i],96,96,96*exFrame[i],0,96,96);
-			exFrame[i]++;
-		}
-	}
-
-
-	exPosX = []
-	exPosY = []
-    exFrame = []
-
-
-	//ci = 2;
-	sh = 96;
-	sw = 96;
-	image(explosion_img,0,0,sw,sh,96*ci,0,sw,sh);
-	ci = (ci+1)%12;
-	/*
-    image(img, dx, dy, dWidth, dHeight, sx, sy, [sWidth], [sHeight])
-
-sx, sy etc are the start position relative to the image, sWidth, sHeight are the width and height of the subset of the image. dx, dy are where you want to draw it on canvas and dWidth, dHeight are how big you want to draw the image.
-
-	*/
 
 	return false;
 }
 
 
-function endScreen()
+function setNewGame()
 {
-	background(180,197,223);
-	textSize(50);
-    text("FIM",230,250)
-	textSize(30);
-	text("Pontos",228,350)
-	text(score,265,390)
+	screen = 2;
+	level = 1;
+	exFrame = 12;	
+	setupLevel();
 }
 
 
-function gameOverScreen()
-{
-	// limpa o cenário
-	push();
-	background(50);
-    fill(255);
-	textSize(35)
-	text("Game Over",190,250);
-	pop();
-}
-
-
+// Configura um nova palavra
 function setNewWord(w)
 {
 	if (words.length==0) {
@@ -237,40 +210,42 @@ function setNewWord(w)
 	w.tipo = getRndInteger(0, 3);
 	w.active = true;
     refleshCoordinates(w);
-
-	words.splice(r,1); // deleta a palavra para
-	                   // não ser usada novamente
+	words.splice(r,1); 
 	return true;
 }
 
 
+// Configura uma nova fase do jogo
 function setupLevel()
 {
 	var r, i, j, w, d;
-
-	if (level == 1) {
-	   r = [0,1];
-	   yspeed = 3;
-	}
-	else if (level == 2) {
-	   r = [2,3,4];
-	   yspeed = 3;
-	}
-	else if (level == 3) {
-	   r = [5,6,7,8];
-	   yspeed = 3;
-	}
-	else if (level == 4) {
-	   r = [9,10,11,12,13];
-	   yspeed = 3;
-	}
-	else if (level == 5) {
-	   r = [2,3,4,1,0,9];
-	   yspeed = 5;
-	}
-
+	
     words = [];
     cats = [];
+    icats = [];	
+	if (level == 1) {
+		r = getRndCategories(2);
+		yspeed = 3;
+		score = 0;
+		life = 5;	   
+	}
+	else if (level == 2) {
+		r = getRndCategories(3);
+		yspeed = 3;
+	}
+	else if (level == 3) {
+		r = getRndCategories(4);
+		yspeed = 3
+	}
+	else if (level == 4) {
+		r = getRndCategories(5);
+		yspeed = 4;
+	}
+	else if (level == 5) {
+		r = getRndCategories(5);
+		yspeed = 5;
+	}
+
 	for (i=0; i<r.length; i++) {
 	    w = easycat[r[i]]["words"];
 		cats.push(easycat[r[i]]["title"]);
@@ -283,8 +258,26 @@ function setupLevel()
 	for (i=0; i<=cats.length; i++) {
 		bar[i] = {x1:d+55*i, y1:420, x2:d+15+55*i, y2:499};
     }
+	
+	word.active = false;
 }
 
+// Retorna um vetor com n índices aleatórios de categorias
+function getRndCategories(n)
+{
+	var i, k, r = [];
+	if (icats.length<n) {
+		for (i=0; i<easycat.length; i++) {
+			icats[i] = i; 
+		}
+	}
+	for (i=0; i<n; i++) {
+	    k = getRndInteger(0, icats.length-1);
+		r.push(icats[k]);
+		icats.splice(k,1); 
+	}				   
+	return r;
+}
 
 function keyPressed()
 {
@@ -292,7 +285,7 @@ function keyPressed()
 		tipo = word.tipo;
 		word.tipo = (word.tipo+1)%4;
 		refleshCoordinates(word);
-
+      
 		// verifica se pode rotacionar
 		if (word.x1<4 || word.x2>400) {
 			word.tipo = tipo;
@@ -300,8 +293,11 @@ function keyPressed()
 		}
 	}
 	if (screen == 1 && keyCode == 32) {
-		screen = 2;
+		setNewGame();
 	}
+	if (screen == 3 && keyCode == 32) {
+		setNewGame();
+	}	
     return false;
 }
 
