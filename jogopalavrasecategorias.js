@@ -1,3 +1,7 @@
+// Jogo Palavras e Categorias
+// Versão: 1.0
+// Autor: Estéfane
+
 var bar = [], words = [], cats = [], icats = [];
 var score, level, life;
 var yspeed;
@@ -9,8 +13,7 @@ var exPosX = 0;
 var exPosY = 0;
 var exFrame = 12;
 var angle = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
-var word  = {text:"", active:false, cat:"", x:0, y:0, x1:0, y1:0, x2:0, y2:0, tipo:0};
-
+var nw, word = [];
 
 function preload()
 {
@@ -27,6 +30,11 @@ function setup()
 	textFont('Helvetica');
 	frameRate(30);
 	screen = 1;
+	for (k=0; k<5; k++) {	
+		word[k] = {text:"", active:false, movable:false, cat:"", x:0, y:0, x1:0, y1:0, x2:0, y2:0, tipo:0};
+	}	
+    
+	writer = createWriter('squares.txt');
 }
 
 function draw()
@@ -48,6 +56,7 @@ function draw()
 	return false;
 }
 
+
 function beginScreen()
 {
 	push();
@@ -58,6 +67,7 @@ function beginScreen()
     image(initial_img,40,40);
 	pop();
 }
+
 
 function endScreen()
 {
@@ -87,8 +97,21 @@ function gameOverScreen()
 
 function gameScreen()
 {	
-
-	if (!word.active && !setNewWord(word)) {
+    // Verifica se há palavras desativadas
+    for (k=0; k<nw; k++) {
+		if (!word[k].active) {
+			setNewWord(word[k]);
+		}		
+	}
+	
+	// Detecta mudança de nível
+	var newLevel = true;
+    for (k=0; k<nw; k++) {
+		if (word[k].active) {
+			newLevel = false;
+		}	
+	}	
+	if (newLevel) {
 		level++;
 		if (level <= 5) {
 			setupLevel();
@@ -98,55 +121,90 @@ function gameScreen()
 		}
 		return false;
 	}
-
-	if (keyIsDown(LEFT_ARROW) && word.x1>4) {
-		word.x -= 5;
-	}
-	if (keyIsDown(RIGHT_ARROW) && word.x2<400) {
-		word.x += 5;
-	}
-	if (keyIsDown(DOWN_ARROW)) {
-		word.y += 40;
-	}
-	word.y += yspeed;
-	refleshCoordinates(word);
-
-	// detecta colisão
-	for (i=0; i<bar.length; i++) {
-		if (word.x1 < bar[i].x2 && word.x2 > bar[i].x1 && word.y2 > bar[i].y1) {
-			word.active = false;
-			exPosX = (word.x1+word.x2)/2-96/2;
-			exPosY = (word.y1+word.y2)/2-96/2;
-			exFrame = 0;
-			life--;
-			if (life<=0) {
-				screen = 3;
-				return false;
-			}			
+	
+	// Detecta se há uma palavra "movable"
+	var movable = false;
+    for (k=0; k<nw; k++) {
+		if (word[k].active && word[k].movable) {
+			movable = true;
 		}
 	}
+	
+	// Se não existe palavra "movable",
+	// então escolha a palavra mais próxima
+	// do chão com "movable".
+	if (!movable) {
+		ymax = 0;
+		imax = 0;
+		for (k=0; k<nw; k++) {
+			if (word[k].active && word[k].y2 > ymax) {
+				ymax = word[k].y2;
+				imax = k;					
+			}
+		}	
+		word[imax].movable = true;
+	}
 
-	// Verifica se a palavra caiu na categoria correta
-	if (word.y1>workheight && word.active) {
-		var success = false;
-		if (word.x1 > bar[0].x2) {
-			for (i=0; i<bar.length-1; i++) {
-				if (word.x1 < bar[i+1].x1) {
-					if (word.cat == i && word.tipo==1) {
-						success = true;
-						break;
+
+    for (k=0; k<nw; k++) {	
+	
+		if (word[k].active) {
+	
+			// Move as palavras	
+			if (word[k].movable) {
+				if (keyIsDown(LEFT_ARROW) && word[k].x1>4) {
+					word[k].x -= 5;
+				}
+				if (keyIsDown(RIGHT_ARROW) && word[k].x2<400) {
+					word[k].x += 5;
+				}
+				if (keyIsDown(DOWN_ARROW)) {
+					word[k].y += 40;
+				}
+			}	
+			word[k].y += yspeed;
+			refleshCoordinates(word[k]);
+
+
+			// Detecta a colisão
+			for (i=0; i<bar.length; i++) {
+				if (word[k].x1 < bar[i].x2 && word[k].x2 > bar[i].x1 && word[k].y2 > bar[i].y1) {
+					word[k].active = false;
+					exPosX = (word[k].x1+word[k].x2)/2-96/2;
+					exPosY = (word[k].y1+word[k].y2)/2-96/2;
+					exFrame = 0;
+					life--;
+					if (life<=0) {
+						screen = 3;
+						return false;
+					}			
+				}
+			}	
+
+			// Verifica se a palavra caiu na categoria correta
+			if (word[k].y1>workheight && word[k].active) {
+				var success = false;
+				if (word[k].x1 > bar[0].x2) {
+					for (i=0; i<bar.length-1; i++) {
+						if (word[k].x1 < bar[i+1].x1) {
+							if (word[k].cat == i && word[k].tipo==1) {
+								success = true;
+								break;
+							}
+						}
 					}
 				}
+				if (success) {
+					score++;
+				}
+				word[k].active = false;
 			}
-        }
-        if (success) {
-			score++;
 		}
-		word.active = false;
-	}
-
+    }
+	
 	///////// Desenha o cenário ///////////////////////////////
 
+	// Desenha o plano de fundo
 	push();
 	background(180,197,223);
 	strokeWeight(5);
@@ -154,6 +212,7 @@ function gameScreen()
 	line(404, 0, 404, 504);
 	pop();
 
+	// Escreve o estado do jogo
 	boxText('Pontos',50,20,false);
 	boxText(score,90,20,true);
 	boxText('Nível',150,20,false);
@@ -161,10 +220,12 @@ function gameScreen()
 	boxText('Vidas',250,20,false);
 	boxText(life,290,20,true);
 
+	// Desenha as barras de obstáculos
 	for (i=0; i<bar.length; i++) {
 		rect(bar[i].x1,bar[i].y1,bar[i].x2-bar[i].x1,bar[i].y2-bar[i].y1);
 	}
 
+	// Escreve o nome das categorias 
 	for (i=0; i<cats.length; i++) {
 		push()
 		x = (bar[i].x2+bar[i+1].x1)/2+3;
@@ -174,19 +235,25 @@ function gameScreen()
         pop();
 	}
 
-	if (word.active) {
-		rotateWord(word.text,word.x,word.y,angle[word.tipo]);
-	}
+	// Desenha as palavras
+	for (k=0; k<nw; k++) {
+		if (word[k].active) {
+			rotateWord(word[k]);
+		}
+	}	
 
+	// Mostra o próximo frame da explosão
 	if (exFrame<12) {
 		image(explosion_img,exPosX,exPosY,96,96,96*exFrame,0,96,96);
 		exFrame++;
-	}	
+	}
 
 	return false;
+
 }
 
 
+// Configura um novo jogo
 function setNewGame()
 {
 	screen = 2;
@@ -196,7 +263,7 @@ function setNewGame()
 }
 
 
-// Configura um nova palavra
+// Configura uma nova palavra
 function setNewWord(w)
 {
 	if (words.length==0) {
@@ -205,10 +272,11 @@ function setNewWord(w)
 	var r = getRndInteger(0, words.length-1);
 	w.text = words[r].text;
 	w.cat = words[r].cat;
-	w.x = 250;
+	w.x = getRndInteger(20,workWidth-20);
 	w.y = 0;
 	w.tipo = getRndInteger(0, 3);
 	w.active = true;
+	w.movable = false;
     refleshCoordinates(w);
 	words.splice(r,1); 
 	return true;
@@ -222,30 +290,35 @@ function setupLevel()
 	
     words = [];
     cats = [];
-    icats = [];	
+    icats = [];		
+	
 	if (level == 1) {
 		r = getRndCategories(2);
-		yspeed = 3;
+		nw = 2;
+		yspeed = 1;
 		score = 0;
 		life = 5;	   
 	}
 	else if (level == 2) {
 		r = getRndCategories(3);
-		yspeed = 3;
+		nw = 2;
+		yspeed = 1;
 	}
 	else if (level == 3) {
-		r = getRndCategories(4);
-		yspeed = 3
+		r = getRndCategories(3);
+		nw = 2;
+		yspeed = 2
 	}
 	else if (level == 4) {
-		r = getRndCategories(5);
-		yspeed = 4;
+		r = getRndCategories(3);
+		nw = 3;
+		yspeed = 2;
 	}
 	else if (level == 5) {
-		r = getRndCategories(5);
-		yspeed = 5;
+		nw = 3;
+		r = getRndCategories(4);
+		yspeed = 2;
 	}
-
 	for (i=0; i<r.length; i++) {
 	    w = easycat[r[i]]["words"];
 		cats.push(easycat[r[i]]["title"]);
@@ -258,8 +331,10 @@ function setupLevel()
 	for (i=0; i<=cats.length; i++) {
 		bar[i] = {x1:d+55*i, y1:420, x2:d+15+55*i, y2:499};
     }
+	for (k=0; k<nw; k++) {	
+		word[k].active = false;
+	}
 	
-	word.active = false;
 }
 
 // Retorna um vetor com n índices aleatórios de categorias
@@ -282,15 +357,13 @@ function getRndCategories(n)
 function keyPressed()
 {
     if (keyCode == UP_ARROW) {
-		tipo = word.tipo;
-		word.tipo = (word.tipo+1)%4;
-		refleshCoordinates(word);
-      
-		// verifica se pode rotacionar
-		if (word.x1<4 || word.x2>400) {
-			word.tipo = tipo;
-			refleshCoordinates(word);
-		}
+		for (k=0; k<nw; k++) {	
+			if (word[k].movable) {
+				tipo = word[k].tipo;
+				word[k].tipo = (word[k].tipo+1)%4;
+				refleshCoordinates(word[k]);
+			}
+		}	
 	}
 	if (screen == 1 && keyCode == 32) {
 		setNewGame();
@@ -338,27 +411,32 @@ function refleshCoordinates(w)
 
 }
 
-function rotateWord(s,x,y,a)
+function rotateWord(w)
 {
 	var c, d, i;
+	var s = w.text;	
 	var wWidth  = s.length*21;
 	var wHeight = 21;
     push();
 	textSize(15);
-    translate(x,y);
-    rotate(a);
+    translate(w.x,w.y);
+    rotate(angle[w.tipo]);
     for (i=0; i<s.length; i++) {
-		if (i==s.length-1) {
-            push();
-		    fill(200);
-			rect(i*21-wWidth/2,-10,21,21);
-			pop();
+		if (w.movable) {
+			if (i==s.length-1) {
+				fill(200);
+			}
+			else {
+				fill(215,215,244);
+			}
 		}
 		else {
-			rect(i*21-wWidth/2,-10,21,21);
+			fill(255);
 		}
+		rect(i*21-wWidth/2,-10,21,21);
 		c = s.charAt(i);
 		d = (21-textWidth(c))/2;
+		fill(0);
 		text(c,i*21+d-wWidth/2,7);
     }
     pop();
