@@ -152,31 +152,6 @@ var easycat =
                     "river",
                     "sea"
              ]
-  },
-
-  {"title" :        "Mammals",
-   "words" : [      "anteater",
-                    "bat",
-                    "camel",
-                    "donkey",
-                    "cow",
-                    "deer",
-                    "boar",
-                    "calf",
-                    "seal",
-                    "kangaroo"
-             ]
-  },
-
-  {"title" :       "The living room",
-   "words" : [	   "armchair",
-				   "couch",
-                   "drapes",
-                   "cushion",
-                   "fireplace",
-                   "rug",
-                   "staircase"
-             ]
-  },
+  }
 
 ];
